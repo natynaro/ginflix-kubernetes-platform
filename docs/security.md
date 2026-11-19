@@ -43,7 +43,7 @@ bash k8s/security-reports/run-kube-score.sh
 bash k8s/security-reports/run-kubescape.sh
 ```
 
-GitHub Actions runs Gitleaks against the full Git history, Trivy against Kubernetes configuration, repository files, and the public MongoDB image, plus kube-score, Kubescape, and OpenSSF Scorecard. Trivy, kube-score, and Kubescape currently report findings without blocking merges while the course-provided manifests and image baseline are being assessed. Gitleaks is blocking. The kube-score job can display a failure for its findings while the overall Security workflow succeeds because that job is explicitly non-blocking.
+GitHub Actions runs Gitleaks against the full Git history, Trivy against Kubernetes configuration, repository files, and the public MongoDB image, plus kube-score, Kubescape, and OpenSSF Scorecard. Trivy, kube-score, and Kubescape currently report findings without blocking merges while the course-provided manifests and image baseline are being assessed. Gitleaks is blocking. The kube-score step is explicitly advisory: its findings remain visible in the logs, but they do not fail the Security workflow.
 
 The application images are hosted in a private course registry and are not scanned by CI because no registry credentials are configured. The `mongo:6` image is public and is scanned for high and critical vulnerabilities; Trivy reports findings without failing the workflow while the demo image baseline is evaluated. CI validates rendered Kubernetes objects with Kubeconform rather than `kubectl apply --dry-run=client`, which can require API-server discovery.
 

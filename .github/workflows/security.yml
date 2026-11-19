@@ -102,10 +102,9 @@ jobs:
       # Course application images are private; scanning them requires registry credentials.
 
   kube-score:
-    name: Kubernetes design checks (kube-score)
+    name: Kubernetes design report (advisory)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
     permissions:
       contents: read
 
@@ -130,7 +129,8 @@ jobs:
           chmod +x /tmp/kube-score
           sudo install /tmp/kube-score /usr/local/bin/kube-score
 
-      - name: Score rendered GitOps bundle
+      - name: Score rendered GitOps bundle (advisory)
+        continue-on-error: true
         run: |
           kubectl kustomize k8s/app --load-restrictor LoadRestrictionsNone |
             kube-score score -

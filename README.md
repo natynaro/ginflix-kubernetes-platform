@@ -180,7 +180,6 @@ Additional architectural details are available in [docs/architecture.md](docs/ar
 - Kustomize application bundle
 - GitHub Actions validation workflows
 - GitHub Actions security workflows
-- Documentation validation
 - Release automation
 
 ### Security Checks
@@ -213,7 +212,6 @@ Additional architectural details are available in [docs/architecture.md](docs/ar
 ```text
 .
 ├── .gitignore
-├── .markdownlint-cli2.jsonc
 ├── .yamllint
 ├── README.md
 ├── docs/
@@ -339,11 +337,6 @@ The repository includes automated workflows for:
 - kube-score
 - Kubescape
 - OpenSSF Scorecard
-
-### Documentation Checks
-
-- Markdown linting
-- Documentation consistency validation
 
 ### Releases
 
