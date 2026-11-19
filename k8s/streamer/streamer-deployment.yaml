@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: streamer
+  namespace: ginflix
+  labels:
+    app: streamer
+spec:
+  selector:
+    matchLabels:
+      app: streamer
+  template:
+    metadata:
+      labels:
+        app: streamer
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: streamer
+              topologyKey: kubernetes.io/hostname
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - name: streamer
+        image: registry.example.invalid/ginflix/streamer:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: ginflix-config
+        - secretRef:
+            name: s3-secret
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 15
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+            ephemeral-storage: 64Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 512Mi
