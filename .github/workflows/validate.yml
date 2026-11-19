@@ -1,0 +1,123 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+      - bingrui
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  KUBECONFORM_VERSION: v0.6.7
+  PROM_CHART_VERSION: "69.8.2"
+  LOKI_CHART_VERSION: "2.10.3"
+
+jobs:
+  yaml-and-shell:
+    name: YAML and shell lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install yamllint
+        run: |
+          python3 -m pip install --user yamllint
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+
+      - name: Lint YAML
+        run: yamllint -c .yamllint .github/workflows k8s
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install --yes shellcheck
+
+      - name: Lint shell scripts
+        shell: bash
+        run: |
+          mapfile -d '' scripts < <(find . -type f -name '*.sh' -print0)
+          if ((${#scripts[@]} == 0)); then
+            echo "No shell scripts found."
+            exit 0
+          fi
+          shellcheck "${scripts[@]}"
+
+  kubeconform:
+    name: Kubernetes schema validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install kubeconform
+        shell: bash
+        run: |
+          curl --fail --location --silent --show-error \
+            "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar xz -C /usr/local/bin kubeconform
+          kubeconform -v
+
+      - name: Validate Kubernetes manifests
+        shell: bash
+        run: |
+          find k8s -type f -name '*.yaml' \
+            ! -name 'kustomization.yaml' \
+            ! -path 'k8s/monitoring/values-*' \
+            -print0 |
+            xargs -0 kubeconform \
+              -strict \
+              -summary \
+              -kubernetes-version 1.32.0 \
+              -schema-location default \
+              -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+              -ignore-missing-schemas
+
+  helm:
+    name: Helm values validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Helm
+        uses: Azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+
+      - name: Lint monitoring chart values
+        shell: bash
+        run: |
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+
+          mkdir -p /tmp/charts
+          helm pull prometheus-community/kube-prometheus-stack \
+            --version "${PROM_CHART_VERSION}" \
+            --untar -d /tmp/charts
+          helm pull grafana/loki-stack \
+            --version "${LOKI_CHART_VERSION}" \
+            --untar -d /tmp/charts
+
+          helm lint /tmp/charts/kube-prometheus-stack \
+            -f k8s/monitoring/values-prometheus.yaml
+          helm lint /tmp/charts/loki-stack \
+            -f k8s/monitoring/values-loki.yaml

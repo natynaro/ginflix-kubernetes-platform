@@ -1,0 +1,187 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+      - bingrui
+  schedule:
+    - cron: "15 14 * * 0"
+  branch_protection_rule:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gitleaks:
+    name: Secret scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Gitleaks
+        shell: bash
+        run: |
+          version=8.30.1
+          archive="gitleaks_${version}_linux_x64.tar.gz"
+          base_url="https://github.com/gitleaks/gitleaks/releases/download/v${version}"
+
+          curl --fail --location --silent --show-error \
+            "${base_url}/${archive}" -o "/tmp/${archive}"
+          curl --fail --location --silent --show-error \
+            "${base_url}/gitleaks_${version}_checksums.txt" \
+            -o /tmp/gitleaks_checksums.txt
+          grep " ${archive}$" /tmp/gitleaks_checksums.txt |
+            (cd /tmp && sha256sum --check)
+          tar -xzf "/tmp/${archive}" -C /tmp gitleaks
+          sudo install /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Scan repository history for secrets
+        run: gitleaks git --redact --exit-code 1 .
+
+  trivy:
+    name: IaC, secret, and public image scan (Trivy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Scan Kubernetes configuration
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: k8s/
+          scanners: misconfig
+          severity: HIGH,CRITICAL
+          exit-code: "0"
+          format: table
+
+      - name: Scan repository files for secrets
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: secret
+          severity: HIGH,CRITICAL
+          exit-code: "0"
+          format: table
+
+      - name: Scan public MongoDB image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: mongo:6
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "0"
+          format: table
+
+      # Course application images are private; scanning them requires registry credentials.
+
+  kube-score:
+    name: Kubernetes design checks (kube-score)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install kubectl
+        uses: Azure/setup-kubectl@bda439f5f36b99b262ebdcd3613869bddb064c8e # v5.2.0
+        with:
+          version: v1.32.0
+
+      - name: Install kube-score
+        shell: bash
+        run: |
+          version=1.20.0
+          curl --fail --location --silent --show-error \
+            "https://github.com/zegl/kube-score/releases/download/v${version}/kube-score_${version}_linux_amd64" \
+            -o /tmp/kube-score
+          chmod +x /tmp/kube-score
+          sudo install /tmp/kube-score /usr/local/bin/kube-score
+
+      - name: Score rendered GitOps bundle
+        run: |
+          kubectl kustomize k8s/app --load-restrictor LoadRestrictionsNone |
+            kube-score score -
+
+  kubescape:
+    name: Kubernetes security posture (Kubescape)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Scan manifests
+        run: |
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/workspace" \
+            -w /workspace \
+            quay.io/kubescape/kubescape-cli:v4.0.21 \
+            scan k8s/ --submit=false --format pretty-printer
+
+  scorecard:
+    name: OpenSSF Scorecard
+    if: ${{ github.event.repository.default_branch == github.ref_name && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@23f22cd43608bae7a1f1fa2603d7314dee9538a5 # v2.6.0
+        with:
+          results_file: scorecard.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload Scorecard SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: scorecard.sarif

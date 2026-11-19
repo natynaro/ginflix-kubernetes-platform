@@ -1,0 +1,67 @@
+name: Test Kubernetes Manifests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+      - bingrui
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-manifests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-and-validate:
+    name: Render and validate GitOps bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install kubectl
+        uses: Azure/setup-kubectl@bda439f5f36b99b262ebdcd3613869bddb064c8e # v5.2.0
+        with:
+          version: v1.32.0
+
+      - name: Install kubeconform
+        shell: bash
+        run: |
+          curl --fail --location --silent --show-error \
+            "https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz" \
+            | tar xz -C /usr/local/bin kubeconform
+
+      - name: Render GitOps bundle
+        run: |
+          kubectl kustomize k8s/app \
+            --load-restrictor LoadRestrictionsNone \
+            > /tmp/ginflix-rendered.yaml
+          test -s /tmp/ginflix-rendered.yaml
+
+      - name: Check that the bundle excludes Secrets
+        shell: bash
+        run: |
+          if grep -Eq '^kind:[[:space:]]*Secret[[:space:]]*$' /tmp/ginflix-rendered.yaml; then
+            echo "::error::The GitOps bundle must not include Kubernetes Secrets."
+            exit 1
+          fi
+
+      - name: Validate rendered resources
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -kubernetes-version 1.32.0 \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            -ignore-missing-schemas \
+            /tmp/ginflix-rendered.yaml
