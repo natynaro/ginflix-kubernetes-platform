@@ -1,0 +1,90 @@
+# ==========================
+# OS
+# ==========================
+
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==========================
+# IDE
+# ==========================
+
+.vscode/
+.idea/
+*.iml
+
+# ==========================
+# Logs
+# ==========================
+
+*.log
+logs/
+
+# ==========================
+# Environment files
+# ==========================
+
+.env
+.env.*
+
+# ==========================
+# Certificates / Keys
+# ==========================
+
+*.pem
+*.key
+*.crt
+*.p12
+
+# ==========================
+# Kubernetes secrets
+# ==========================
+
+k8s/secrets/*.yaml
+
+!k8s/secrets/example-*.yaml
+!k8s/secrets/*.template.yaml
+!k8s/secrets/README.md
+
+# ==========================
+# Generated manifests
+# ==========================
+
+rendered*.yaml
+compiled*.yaml
+output*.yaml
+
+# ==========================
+# Security scan outputs
+# ==========================
+
+k8s/security-reports/*.json
+k8s/security-reports/*.txt
+k8s/security-reports/*.html
+
+# ==========================
+# Backups
+# ==========================
+
+backup/
+backups/
+
+*.dump
+*.archive
+*.tar.gz
+
+# ==========================
+# Temporary files
+# ==========================
+
+*.tmp
+*.bak
+*.swp
+
+# ==========================
+# Node
+# ==========================
+
+node_modules/
+npm-debug.log*
