@@ -1,0 +1,65 @@
+# Grafana Loki + Promtail (lightweight Kind profile; ginflix logs only)
+loki:
+  enabled: true
+  isDefault: false
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+promtail:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  config:
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+    snippets:
+      scrapeConfigs: |
+        - job_name: kubernetes-pods-ginflix
+          pipeline_stages:
+            - cri: {}
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names:
+                  - ginflix
+          relabel_configs:
+            - action: replace
+              source_labels: [__meta_kubernetes_pod_node_name]
+              target_label: node_name
+            - action: replace
+              source_labels: [__meta_kubernetes_namespace]
+              target_label: namespace
+            - action: replace
+              replacement: $1
+              separator: /
+              source_labels: [namespace, __meta_kubernetes_pod_label_app]
+              target_label: job
+            - action: replace
+              source_labels: [__meta_kubernetes_pod_name]
+              target_label: pod
+            - action: replace
+              source_labels: [__meta_kubernetes_pod_container_name]
+              target_label: container
+            - action: replace
+              replacement: /var/log/pods/*$1/*.log
+              separator: /
+              source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+              target_label: __path__
+
+grafana:
+  enabled: false
+  sidecar:
+    datasources:
+      enabled: false

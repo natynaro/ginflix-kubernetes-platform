@@ -1,0 +1,55 @@
+# kube-prometheus-stack — tuned for Kind (3 nodes, ~8 GiB RAM)
+grafana:
+  adminPassword: ginflix
+  service:
+    type: LoadBalancer
+  # Only load datasources from this Helm release (ignore loki-stack CM).
+  sidecar:
+    datasources:
+      label: app.kubernetes.io/instance
+      labelValue: kube-prometheus
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      access: proxy
+      url: http://loki:3100
+      isDefault: false
+      jsonData:
+        maxLines: 1000
+
+prometheus:
+  prometheusSpec:
+    retention: 2d
+    retentionSize: 2GB
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi

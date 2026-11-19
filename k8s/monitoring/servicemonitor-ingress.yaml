@@ -1,0 +1,19 @@
+# Scrape nginx-ingress-controller metrics into Prometheus.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ingress-nginx
+  namespace: monitoring
+  labels:
+    release: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/component: controller
+  namespaceSelector:
+    matchNames:
+      - ingress-nginx
+  endpoints:
+    - port: metrics
+      interval: 30s
