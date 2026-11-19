@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: database-pdb
+  namespace: ginflix
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: database
