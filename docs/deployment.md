@@ -109,6 +109,7 @@ kubectl delete job database-rs-init \
   -n ginflix \
   --ignore-not-found
 
+kubectl apply -f k8s/network-policies/rs-init-policy.yaml
 kubectl apply -f k8s/mongodb/database-rs-init-job.yaml
 
 kubectl wait \

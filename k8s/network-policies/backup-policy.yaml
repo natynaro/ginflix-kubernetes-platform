@@ -9,7 +9,9 @@ spec:
     matchLabels:
       job: mongodb-backup
   policyTypes:
+  - Ingress
   - Egress
+  ingress: []
   egress:
   - to:
     - podSelector:

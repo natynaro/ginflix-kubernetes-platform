@@ -15,7 +15,7 @@ resources:
   - ../streamer/streamer-service.yaml
   - ../mongodb/database-deployment.yaml
   - ../mongodb/database-service.yaml
-  # database-rs-init: one-time bootstrap only; do not re-apply on every sync.
+  # Apply the one-time bootstrap job and its policy manually, not through Argo CD.
   - ../mongodb/backup-cronjob.yaml
   - ../hpa/backend-hpa.yaml
   - ../hpa/streamer-hpa.yaml
@@ -29,7 +29,6 @@ resources:
   - ../network-policies/frontend-policy.yaml
   - ../network-policies/frontend-admin-policy.yaml
   - ../network-policies/streamer-policy.yaml
-  - ../network-policies/rs-init-policy.yaml
   - ../network-policies/backup-policy.yaml
   - ../ingress/ginflix-ingress.yaml
   - ../cert-manager/cluster-issuer-selfsigned.yaml
