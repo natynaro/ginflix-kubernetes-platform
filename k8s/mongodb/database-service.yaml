@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: database
+  namespace: ginflix
+  labels:
+    app: database
+spec:
+  # Headless Service — stable DNS per pod: database-0.database, database-1.database, ...
+  clusterIP: None
+  selector:
+    app: database
+  ports:
+  - name: mongo
+    port: 27017
+    targetPort: 27017

@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: database-rs-init
+  namespace: ginflix
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 10
+  template:
+    metadata:
+      labels:
+        job: database-rs-init
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: rs-init
+        image: mongo:6
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+            ephemeral-storage: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+            ephemeral-storage: 256Mi
+        command:
+        - bash
+        - -ec
+        - |
+          echo "Waiting for database-0..."
+          until mongosh --quiet "mongodb://database-0.database.ginflix.svc.cluster.local:27017/admin" --eval "db.adminCommand('ping').ok" >/dev/null 2>&1; do
+            sleep 3
+          done
+
+          echo "Initializing replica set rs0 (idempotent)..."
+          mongosh --quiet "mongodb://database-0.database.ginflix.svc.cluster.local:27017/admin" --eval '
+            try {
+              const st = rs.status();
+              if (st.ok === 1) { print("Replica set already initialized"); quit(0); }
+            } catch (e) {}
+
+            rs.initiate({
+              _id: "rs0",
+              members: [
+                { _id: 0, host: "database-0.database.ginflix.svc.cluster.local:27017" },
+                { _id: 1, host: "database-1.database.ginflix.svc.cluster.local:27017" },
+                { _id: 2, host: "database-2.database.ginflix.svc.cluster.local:27017" }
+              ]
+            });
+            print("Replica set initiated");
+          '
+
+          echo "Waiting for PRIMARY..."
+          for i in $(seq 1 60); do
+            STATE=$(mongosh --quiet "mongodb://database-0.database.ginflix.svc.cluster.local:27017/admin" --eval "rs.isMaster().ismaster" 2>/dev/null || echo false)
+            if [ "$STATE" = "true" ]; then
+              echo "Replica set ready"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Timed out waiting for PRIMARY"
+          exit 1

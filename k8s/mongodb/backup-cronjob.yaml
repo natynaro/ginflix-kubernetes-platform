@@ -1,0 +1,70 @@
+# Scheduled MongoDB backup (mongodump → PVC). Apply secrets first.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-backup
+  namespace: ginflix
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: standard
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mongodb-backup
+  namespace: ginflix
+spec:
+  schedule: "0 2 * * *"
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            job: mongodb-backup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: mongodump
+              image: mongo:6
+              imagePullPolicy: IfNotPresent
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                  ephemeral-storage: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+                  ephemeral-storage: 512Mi
+              env:
+                - name: MONGO_URI
+                  valueFrom:
+                    secretKeyRef:
+                      name: mongo-secret
+                      key: MONGO_URI
+              command:
+                - bash
+                - -ec
+                - |
+                  TS="$(date -u +%Y%m%dT%H%M%SZ)"
+                  OUT="/backup/ginflix-${TS}"
+                  mkdir -p "$OUT"
+                  echo "Backing up to ${OUT}..."
+                  mongodump --uri="${MONGO_URI}" --out="$OUT"
+                  echo "Done. Latest:"
+                  ls -la /backup | tail -5
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: mongodb-backup
