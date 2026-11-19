@@ -1,0 +1,45 @@
+# MongoDB: only backend may connect (teacher: backend → mongo).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: database-allow-backend
+  namespace: ginflix
+spec:
+  podSelector:
+    matchLabels:
+      app: database
+  policyTypes:
+  - Ingress
+  ingress:
+  # Teacher: backend → mongo
+  - from:
+    - podSelector:
+        matchLabels:
+          app: backend
+    ports:
+    - protocol: TCP
+      port: 27017
+  # One-shot replica-set init Job
+  - from:
+    - podSelector:
+        matchLabels:
+          job: database-rs-init
+    ports:
+    - protocol: TCP
+      port: 27017
+  # Scheduled / manual mongodump backup Job
+  - from:
+    - podSelector:
+        matchLabels:
+          job: mongodb-backup
+    ports:
+    - protocol: TCP
+      port: 27017
+  # Replica set replication + elections (required for HA; not external exposure)
+  - from:
+    - podSelector:
+        matchLabels:
+          app: database
+    ports:
+    - protocol: TCP
+      port: 27017

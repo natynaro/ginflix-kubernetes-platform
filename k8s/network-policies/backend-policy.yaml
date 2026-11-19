@@ -1,0 +1,70 @@
+# Backend: accept API traffic; reach MongoDB, DNS, S3 and Keycloak only.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-policy
+  namespace: ginflix
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Teacher: frontend → backend; plus Ingress (in-cluster) and external clients
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend
+    - podSelector:
+        matchLabels:
+          app: frontend-admin
+    - namespaceSelector: {}
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # Teacher: backend → mongo
+  - to:
+    - podSelector:
+        matchLabels:
+          app: database
+    ports:
+    - protocol: TCP
+      port: 27017
+  # backend → streamer (video processing / status callbacks)
+  - to:
+    - podSelector:
+        matchLabels:
+          app: streamer
+    ports:
+    - protocol: TCP
+      port: 8080
+  # DNS (kube-dns)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Teacher: backend → S3 + Keycloak (HTTPS to public endpoints)
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+    ports:
+    - protocol: TCP
+      port: 443
+  # Return traffic within cluster (Ingress routing)
+  - to:
+    - ipBlock:
+        cidr: 10.10.0.0/16
