@@ -1,0 +1,36 @@
+# GitOps bundle for Argo CD — application manifests only (no secrets).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ginflix
+resources:
+  - ../namespace.yaml
+  # Apply ginflix-config separately from k8s/examples/configmap.yaml after replacing placeholders.
+  - ../frontend/frontend-deployment.yaml
+  - ../frontend/frontend-service.yaml
+  - ../frontend-admin/frontend-admin-deployment.yaml
+  - ../frontend-admin/frontend-admin-service.yaml
+  - ../backend/backend-deployment.yaml
+  - ../backend/backend-service.yaml
+  - ../streamer/streamer-deployment.yaml
+  - ../streamer/streamer-service.yaml
+  - ../mongodb/database-deployment.yaml
+  - ../mongodb/database-service.yaml
+  # database-rs-init: one-time bootstrap only; do not re-apply on every sync.
+  - ../mongodb/backup-cronjob.yaml
+  - ../hpa/backend-hpa.yaml
+  - ../hpa/streamer-hpa.yaml
+  - ../pdb/backend-pdb.yaml
+  - ../pdb/streamer-pdb.yaml
+  - ../pdb/frontend-pdb.yaml
+  - ../pdb/frontend-admin-pdb.yaml
+  - ../pdb/database-pdb.yaml
+  - ../network-policies/backend-policy.yaml
+  - ../network-policies/database-policy.yaml
+  - ../network-policies/frontend-policy.yaml
+  - ../network-policies/frontend-admin-policy.yaml
+  - ../network-policies/streamer-policy.yaml
+  - ../network-policies/rs-init-policy.yaml
+  - ../network-policies/backup-policy.yaml
+  - ../ingress/ginflix-ingress.yaml
+  - ../cert-manager/cluster-issuer-selfsigned.yaml
+  - ../cert-manager/certificate-ginflix.yaml

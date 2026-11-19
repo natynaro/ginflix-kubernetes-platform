@@ -1,0 +1,7 @@
+# Self-signed issuer for Kind / lab (public TLS on VM still uses Moodle certs in /etc/certs).
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: {}

@@ -1,0 +1,3 @@
+# Large JSON outputs — regenerate with run-kubescape.sh
+cluster-nsa.json
+manifests.json

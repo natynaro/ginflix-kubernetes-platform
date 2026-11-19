@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ginflix-tls
+  namespace: ginflix
+spec:
+  secretName: ginflix-tls
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+  dnsNames:
+  - ginflix.example.invalid
+  - admin.ginflix.example.invalid

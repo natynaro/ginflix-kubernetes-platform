@@ -1,0 +1,21 @@
+# GINFlix ConfigMap — non-sensitive app configuration.
+# Copy to an environment-specific file, replace <REPLACE_*> values, and apply that file.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ginflix-config
+  namespace: ginflix
+data:
+  KEYCLOAK_URL: "https://identity.example.invalid"
+  KEYCLOAK_HOST: "identity.example.invalid"
+  KEYCLOAK_REALM: "<REPLACE_REALM>"
+  KEYCLOAK_CLIENT_ID: "<REPLACE_CLIENT_ID>"
+
+  SITE_URL: "https://<REPLACE_SITE_HOST>"
+  ADMIN_URL: "https://<REPLACE_ADMIN_HOST>"
+
+  # Frontend + frontend-admin (project spec)
+  BACKEND_URL: "/api"
+  STREAM_URL: "/stream"
+  # Backend video processing / playback URL (relative; works on main + admin domains)
+  STREAMER_URL: "/stream"
