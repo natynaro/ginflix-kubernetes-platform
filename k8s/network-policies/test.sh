@@ -13,9 +13,17 @@ run_expect() {
   local desc=$1 expect=$2
   shift 2
   if "$@" >/dev/null 2>&1; then
-    [[ "$expect" == pass ]] && ok "$desc" || bad "$desc (expected fail, got success)"
+    if [[ "$expect" == pass ]]; then
+      ok "$desc"
+    else
+      bad "$desc (expected fail, got success)"
+    fi
   else
-    [[ "$expect" == fail ]] && ok "$desc" || bad "$desc (expected pass, got fail)"
+    if [[ "$expect" == fail ]]; then
+      ok "$desc"
+    else
+      bad "$desc (expected pass, got fail)"
+    fi
   fi
 }
 
@@ -37,6 +45,8 @@ run_expect "ingress-nginx → frontend:80 allowed" pass \
   curl -sf --connect-timeout 3 --max-time 5 http://frontend.ginflix.svc.cluster.local/
 
 # ingress → backend HTTP (404 on / is OK — server is up)
+# Keep the script single-quoted so $code expands inside the pod.
+# shellcheck disable=SC2016
 run_expect "ingress-nginx → backend:8080 allowed" pass \
   kubectl exec -n ingress-nginx deploy/ingress-nginx-controller -- \
   sh -c 'code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 3 --max-time 5 http://backend.ginflix.svc.cluster.local:8080/); test "$code" = "200" -o "$code" = "404"'

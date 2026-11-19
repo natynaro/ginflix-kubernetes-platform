@@ -24,7 +24,7 @@ kubectl apply -f "${ROOT}/k8s/cert-manager/certificate-ginflix.yaml"
 
 echo "Waiting for TLS secret ginflix-tls..."
 tls_secret_ready=false
-for i in $(seq 1 60); do
+for ((attempt = 1; attempt <= 60; attempt++)); do
   if kubectl get secret ginflix-tls -n ginflix >/dev/null 2>&1; then
     echo "ginflix-tls ready"
     tls_secret_ready=true

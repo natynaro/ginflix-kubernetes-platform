@@ -4,8 +4,6 @@ This guide describes how to deploy GINFlix on a Kubernetes cluster.
 
 The repository intentionally excludes real credentials, private registry access details, domain names, and institution-specific configuration. Replace all placeholder values with environment-specific settings.
 
-
-
 ## Prerequisites
 
 Required components:
@@ -32,9 +30,7 @@ kubectl get nodes
 
 All nodes should report `Ready`.
 
-
-
-# 1. Namespace and Configuration
+## 1. Namespace and Configuration
 
 Create the application namespace:
 
@@ -82,9 +78,7 @@ Verify:
 kubectl get configmap,secrets -n ginflix
 ```
 
-
-
-# 2. MongoDB
+## 2. MongoDB
 
 Deploy the MongoDB headless Service first:
 
@@ -160,9 +154,7 @@ SECONDARY
 
 If migrating from a standalone MongoDB deployment to the ReplicaSet architecture, existing local data may need to be recreated or restored from backup.
 
-
-
-# 3. Application Workloads
+## 3. Application Workloads
 
 Deploy application services:
 
@@ -199,9 +191,7 @@ Verify:
 kubectl get hpa,pdb,networkpolicy -n ginflix
 ```
 
-
-
-# 4. GitOps Bundle
+## 4. GitOps Bundle
 
 Render the complete Kustomize bundle:
 
@@ -225,9 +215,7 @@ only after:
 
 The MongoDB ReplicaSet initialization Job is intentionally excluded from the GitOps bundle.
 
-
-
-# 5. Metrics Server
+## 5. Metrics Server
 
 Horizontal Pod Autoscalers require:
 
@@ -250,9 +238,7 @@ kubectl top pods -n ginflix
 
 Some Kind environments may require additional kubelet TLS settings for Metrics Server. Apply such workarounds only in development environments.
 
-
-
-# 6. Ingress and TLS
+## 6. Ingress and TLS
 
 Install Ingress-Nginx and project resources:
 
@@ -285,9 +271,7 @@ kubectl get svc \
   ingress-nginx-controller
 ```
 
-
-
-# 7. VM Reverse Proxy
+## 7. VM Reverse Proxy
 
 Configure:
 
@@ -328,9 +312,7 @@ Ensure certificates exist and have the correct permissions:
 
 or the location appropriate for your environment.
 
-
-
-# 8. Argo CD
+## 8. Argo CD
 
 Before applying the Application resource:
 
@@ -353,9 +335,7 @@ If the repository is private:
 
 Secrets and ConfigMaps remain intentionally outside the GitOps bundle.
 
-
-
-# 9. Post-Deployment Verification
+## 9. Post-Deployment Verification
 
 Verify cluster resources:
 
@@ -391,9 +371,7 @@ HTTP 200
 
 The response may be an empty collection when no media has been uploaded.
 
-
-
-# Optional Validation
+## Optional Validation
 
 Network Policies:
 
@@ -421,9 +399,7 @@ bash k8s/security-reports/run-kube-score.sh
 bash k8s/security-reports/run-kubescape.sh
 ```
 
-
-
-# Related Documentation
+## Related Documentation
 
 - `docs/architecture.md`
 - `docs/security.md`

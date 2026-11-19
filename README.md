@@ -19,7 +19,6 @@ This repository goes beyond the minimum requirements by implementing GitOps work
 >
 > This repository focuses on the Kubernetes platform, deployment automation, security controls, infrastructure architecture, and operational practices required to run the application reliably.
 
-
 ## Highlights
 
 - 5-service video-on-demand platform
@@ -31,7 +30,7 @@ This repository goes beyond the minimum requirements by implementing GitOps work
 - Automated MongoDB backups
 - GitHub Actions CI/CD and DevSecOps validation
 
-# Project Overview
+## Project Overview
 
 GINFlix delivers a Netflix-style video-on-demand platform consisting of:
 
@@ -43,9 +42,7 @@ GINFlix delivers a Netflix-style video-on-demand platform consisting of:
 
 The platform was deployed in a Kind-based Kubernetes environment and enhanced with high-availability, observability, security, GitOps, and operational features commonly found in production platforms.
 
-
-
-# Beyond the Original Assignment
+## Beyond the Original Assignment
 
 The original course requirements focused on:
 
@@ -68,11 +65,32 @@ Additional functionality implemented in this project:
 | Database | MongoDB ReplicaSet with persistent volumes |
 | Documentation | Architecture, deployment, security, and operational guides |
 
-
-
 ## Architecture
 
-![Architecture](docs/images/architecture.png)
+```mermaid
+flowchart LR
+    Browser["Browser"]
+    VMNginx["VM Nginx\nHTTPS termination"]
+    Ingress["Ingress-Nginx"]
+    Frontend["Viewer frontend"]
+    Admin["Admin frontend"]
+    Backend["Backend API"]
+    Streamer["HLS streamer"]
+    MongoDB[("MongoDB ReplicaSet\n3 StatefulSet members")]
+    S3["S3-compatible storage\nexternal"]
+    Keycloak["Keycloak\nexternal"]
+
+    Browser -->|HTTPS| VMNginx --> Ingress
+    Ingress -->|/| Frontend
+    Ingress -->|admin hostname| Admin
+    Ingress -->|/api| Backend
+    Ingress -->|/stream| Streamer
+    Backend --> MongoDB
+    Backend --> S3
+    Backend --> Keycloak
+    Streamer --> S3
+    VMNginx -->|OIDC proxy| Keycloak
+```
 
 ```mermaid
 flowchart LR
@@ -114,9 +132,7 @@ MongoDB remains cluster-internal, while Keycloak and S3-compatible storage are e
 
 Additional architectural details are available in [docs/architecture.md](docs/architecture.md).
 
-
-
-# Technology Stack
+## Technology Stack
 
 | Area | Technology |
 | --- | --- |
@@ -136,11 +152,9 @@ Additional architectural details are available in [docs/architecture.md](docs/ar
 | Secret Management | Kubernetes Secrets |
 | CI/CD | GitHub Actions |
 
+## Key Features
 
-
-# Key Features
-
-## Kubernetes Platform
+### Kubernetes Platform
 
 - Dedicated namespace architecture
 - Deployments for stateless workloads
@@ -150,7 +164,7 @@ Additional architectural details are available in [docs/architecture.md](docs/ar
 - Readiness and liveness probes
 - Resource requests and limits
 
-## High Availability
+### High Availability
 
 - Two frontend replicas
 - Two admin frontend replicas
@@ -160,7 +174,7 @@ Additional architectural details are available in [docs/architecture.md](docs/ar
 - PodDisruptionBudgets
 - Persistent storage
 
-## GitOps and CI/CD
+### GitOps and CI/CD
 
 - Argo CD automated synchronization
 - Kustomize application bundle
@@ -169,7 +183,7 @@ Additional architectural details are available in [docs/architecture.md](docs/ar
 - Documentation validation
 - Release automation
 
-## Security
+### Security Checks
 
 - NetworkPolicies for workload isolation
 - Internal-only MongoDB exposure
@@ -178,7 +192,7 @@ Additional architectural details are available in [docs/architecture.md](docs/ar
 - Safe placeholder templates are included; real credentials are excluded from version control
 - TLS support through Nginx and cert-manager resources
 
-## Observability
+### Observability
 
 - Prometheus metrics collection
 - Grafana dashboards
@@ -186,7 +200,7 @@ Additional architectural details are available in [docs/architecture.md](docs/ar
 - Promtail log shipping
 - Namespace-focused monitoring design
 
-## Operations
+### Operations
 
 - Automated MongoDB backups
 - Replica-set initialization automation
@@ -194,9 +208,7 @@ Additional architectural details are available in [docs/architecture.md](docs/ar
 - Troubleshooting guides
 - Deployment validation procedures
 
-
-
-# Repository Structure
+## Repository Structure
 
 ```text
 .
@@ -238,9 +250,7 @@ Additional architectural details are available in [docs/architecture.md](docs/ar
     └── workflows/
 ```
 
-
-
-# Deployment Overview
+## Deployment Overview
 
 The project targets a Kind-based Kubernetes environment running inside a Linux virtual machine.
 
@@ -273,9 +283,7 @@ A detailed deployment procedure is available in:
 
 - `docs/deployment.md`
 
-
-
-# Repository Scope
+## Repository Scope
 
 This repository maintains:
 
@@ -303,9 +311,7 @@ The following components are external and are **not distributed** through this r
 
 These components were provided as part of the academic environment.
 
-
-
-# Monitoring and Security
+## Monitoring and Security
 
 Monitoring installation, dashboards, and operational procedures are documented in:
 
@@ -315,9 +321,7 @@ Security architecture, policy implementation, and security scanning workflows ar
 
 - `docs/security.md`
 
-
-
-# GitHub Actions
+## GitHub Actions
 
 The repository includes automated workflows for:
 
@@ -328,7 +332,7 @@ The repository includes automated workflows for:
 - YAML linting
 - Shell script linting
 
-### Security
+### Security Workflow
 
 - Gitleaks
 - Trivy
@@ -336,7 +340,7 @@ The repository includes automated workflows for:
 - Kubescape
 - OpenSSF Scorecard
 
-### Documentation
+### Documentation Checks
 
 - Markdown linting
 - Documentation consistency validation
@@ -345,9 +349,7 @@ The repository includes automated workflows for:
 
 - Automated GitHub releases for version tags
 
-
-
-# Documentation
+## Documentation
 
 | Document | Purpose |
 | --- | --- |
@@ -359,9 +361,7 @@ The repository includes automated workflows for:
 | decisions.md | Architectural decisions and trade-offs |
 | lessons-learned.md | Engineering challenges and solutions |
 
-
-
-# Lessons Learned
+## Lessons Learned
 
 Some of the main engineering lessons from the project include:
 
@@ -375,9 +375,7 @@ Some of the main engineering lessons from the project include:
 
 Additional details are available in `docs/lessons-learned.md`.
 
-
-
-# Project Status
+## Project Status
 
 This repository represents the final state of a completed academic DevOps project.
 
@@ -400,9 +398,7 @@ Some environment-specific dependencies remain external:
 
 As a result, this repository should be considered a Kubernetes Platform Engineering and DevOps showcase rather than a fully self-contained application.
 
-
-
-# License
+## License
 
 This repository contains infrastructure configuration, documentation, and operational tooling created for educational purposes.
 
